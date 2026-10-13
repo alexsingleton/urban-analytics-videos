@@ -11,13 +11,14 @@
 # download is a short-lived signed redirect to application/octet-stream.
 #
 # urban_analytics_video/video/scripts/publish.py uploads the assets and then
-# starts this workflow.
+# starts this workflow. It runs on main only: the github-pages environment
+# refuses a deploy from a tag, which is what a `release` trigger would run on.
 
 name: Deploy
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
