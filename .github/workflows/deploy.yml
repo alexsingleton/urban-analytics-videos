@@ -1,0 +1,61 @@
+# Publish the practical videos to GitHub Pages.
+#
+# The files themselves are never committed. They live as assets on the single
+# `videos` release, and this workflow downloads every asset into site/ and
+# deploys that folder. Re-uploading an asset with the same name and re-running
+# the workflow replaces a video in place, so the URLs embedded in the
+# practicals never change.
+#
+# Pages rather than linking to the release assets directly: Pages serves
+# video/mp4 and text/vtt with range requests from a CDN, while a release
+# download is a short-lived signed redirect to application/octet-stream.
+#
+# urban_analytics_video/video/scripts/publish.py uploads the assets and then
+# starts this workflow.
+
+name: Deploy
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the release assets
+        run: gh release download videos --repo "$GITHUB_REPOSITORY" --dir site
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: List what will be published
+        run: ls -la site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
